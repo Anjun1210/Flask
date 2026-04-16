@@ -1,3 +1,6 @@
+import requests
+from bs4 import BeautifulSoup
+
 from flask import Flask, render_template,request
 from datetime import datetime
 
@@ -30,8 +33,28 @@ def index():
     link += "<a href=/welcome?u=安均&d=靜宜資管&c=資訊管理導論>Get傳值</a><hr>"
     link += "<a href=/account>Post傳值</a><hr>"
     link += "<a href=/math>次方與根號計算</a><hr>"
-    link += "<br><a href=/read>讀取Firestore資料</a><br>"
+    link += "<a href=/read>讀取Firestore資料</a><hr>"
+    link += "<a href=/search>靜宜資管老師查詢</a><hr>"
     return link
+
+@app.route("/search", methods=["GET", "POST"])
+def search():
+    db = firestore.client()
+    if request.method == "POST":
+        keyword = request.form.get("keyword")
+        results = []
+        collection_ref = db.collection("資管二B")
+        docs = collection_ref.get()
+        
+        for doc in docs:
+            teacher = doc.to_dict()
+            
+            if "name" in teacher and keyword in teacher["name"]:
+                results.append(teacher)
+        
+        return render_template("search.html", keyword=keyword, results=results)
+    
+    return render_template("search.html")
 
 @app.route("/mis")
 def course():
