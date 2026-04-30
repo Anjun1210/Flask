@@ -38,9 +38,32 @@ def index():
     link += "<a href=/spider>爬取子青老師本學期課程</a><hr>"
     link += "<a href=/movie1>爬取即將上映電影</a><hr>"
     link += "<br><a href=/spidermovie>讀取開眼電影即將上映影片，寫入Firestore</a><hr>"
+    link += "<br><a href=/searchmovie>輸入片名關鍵字,可以查詢資料庫符合的電影</a><hr>"
 
     return link
 
+@app.route("/searchmovie", methods=["GET", "POST"])
+def searchmovie():
+    R = "<a href='/'>返回首頁</a><hr>"
+    R += "<form method='POST'>輸入片名: <input name='keyword'> <button>查詢</button></form><hr>"
+
+    if request.method == "POST":
+        keyword = request.form.get("keyword")
+        db = firestore.client()
+        docs = db.collection("電影2B").get()
+        
+        for doc in docs:
+            movie = doc.to_dict()
+            # 只要關鍵字有出現在片名中就印出來
+            if keyword in movie["title"]:
+                R += f"編號：{doc.id}<br>"
+                R += f"片名：{movie['title']}<br>"
+                R += f"日期：{movie['showDate']}<br>"
+                R += f"<a href='{movie['hyperlink']}'>介紹網頁</a><br>"
+                R += f"<img src='{movie['picture']}'><hr>"
+
+    return R
+    
 @app.route("/spidermovie")
 def spidermovie():
     R = ""
