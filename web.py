@@ -1,4 +1,5 @@
 import requests
+import urllib3
 from bs4 import BeautifulSoup
 
 from flask import Flask, render_template,request
@@ -46,7 +47,7 @@ def index():
 @app.route("/road")  # 修正 1：將 road 改為 route
 def road():
     # 稍微調整 HTML 標籤讓標題正確顯示
-    R = "<h1>台中市十大肇事路口(113年10月)</h1><br>"
+    R = "<h1>台中市十大肇事路口(113年10月)作者:蕭安均</h1><br>"
     
     url = "https://datacenter.taichung.gov.tw/swagger/OpenData/a1b899c0-511f-4e3d-b22b-814982a97e41"
 
