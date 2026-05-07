@@ -41,8 +41,51 @@ def index():
     link += "<br><a href=/spidermovie>讀取開眼電影即將上映影片，寫入Firestore</a><hr>"
     link += "<br><a href=/searchmovie>輸入片名關鍵字,可以查詢資料庫符合的電影</a><hr>"
     link += "<br><a href=/road>台中市十大肇事路口</a><hr>"
+    link += "<br><a href=/weather>天氣預報查詢</a><hr>"
 
     return link
+
+@app.route("/weather", methods=["GET", "POST"])
+def weather():
+    R = "<h1>天氣預報查詢</h1>"
+    R += "<a href='/'>返回首頁</a><hr>"
+    R += "<form method='POST'>"
+    R += "請輸入欲查詢縣市 : <input name='city' placeholder='縣市名稱'> "
+    R += "<button>查詢</button></form><hr>"
+
+    if request.method == "POST":
+        
+        city = request.form.get("city").strip()
+        city = city.replace("台", "臺")
+        
+        api_key = "rdec-key-123-45678-011121314" 
+        url = f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization={api_key}&locationName={city}"
+
+        try:
+            response = requests.get(url)
+            data = response.json()
+
+            if data["success"] == "true" and data["records"]["location"]:
+                location_data = data["records"]["location"][0]
+                weather_elements = location_data["weatherElement"]
+
+                # 提取需要的資料 (通常 index 0 是最近的時段)
+                # Wx: 天氣現象, PoP: 降雨機率, MinT: 最低溫, MaxT: 最高溫
+                status = weather_elements[0]["time"][0]["parameter"]["parameterName"]
+                pop = weather_elements[1]["time"][0]["parameter"]["parameterName"]
+                min_t = weather_elements[2]["time"][0]["parameter"]["parameterName"]
+                max_t = weather_elements[4]["time"][0]["parameter"]["parameterName"]
+
+                R += f"<h2>{city} 最新天氣預報</h2>"
+                R += f"天氣狀況：{status}<br>"
+                R += f"降雨機率：{pop}%<br>"
+                R += f"氣溫範圍：{min_t}°C - {max_t}°C<hr>"
+            else:
+                R += f"<p style='color:red;'>找不到「{city}」的資料，請確保輸入正確的縣市全名（包含『臺』或『台』）。</p>"
+        except Exception as e:
+            R += f"查詢出錯：{e}"
+
+    return R
 
 @app.route("/road")  # 修正 1：將 road 改為 route
 def road():
