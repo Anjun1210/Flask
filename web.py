@@ -39,8 +39,37 @@ def index():
     link += "<a href=/movie1>爬取即將上映電影</a><hr>"
     link += "<br><a href=/spidermovie>讀取開眼電影即將上映影片，寫入Firestore</a><hr>"
     link += "<br><a href=/searchmovie>輸入片名關鍵字,可以查詢資料庫符合的電影</a><hr>"
+    link += "<br><a href=/road>台中市十大肇事路口</a><hr>"
 
     return link
+
+@app.route("/road")  # 修正 1：將 road 改為 route
+def road():
+    # 稍微調整 HTML 標籤讓標題正確顯示
+    R = "<h1>台中市十大肇事路口(113年10月)</h1><br>"
+    
+    url = "https://datacenter.taichung.gov.tw/swagger/OpenData/a1b899c0-511f-4e3d-b22b-814982a97e41"
+
+    # 準備偽裝成瀏覽器的 Headers
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+
+    try:
+        # 發送請求時，把 headers 帶進去
+        Data = requests.get(url, headers=headers)
+        Data.raise_for_status() 
+        JsonData = Data.json()
+
+        # 印出資料
+        for item in JsonData:
+            R += item["路口名稱"] + " 原因:" + item["主要肇因"] + "<br>"
+
+        return R
+
+    # 修正 2：補上 except 區塊，捕捉並處理錯誤
+    except Exception as e:
+        return f"發生錯誤，無法抓取資料：{e}"
 
 @app.route("/searchmovie", methods=["GET", "POST"])
 def searchmovie():
