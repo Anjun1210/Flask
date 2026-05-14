@@ -78,9 +78,9 @@ def webhook():
             movie_list.append(movie_data["title"])
         
         if movie_list:
-            info = f"為您找到本週上映的【{target_rate}】電影有：\n" + "、".join(movie_list)
+            info = f"我是蕭安均設計的機器人,為您找到本週上映的【{target_rate}】電影有：\n" + "、".join(movie_list)
         else:
-            info = f"抱歉，本週資料庫中沒有找到【{target_rate}】的電影。"
+            info = f"我是蕭安均設計的機器人,抱歉，本週資料庫中沒有找到【{target_rate}】的電影。"
 
         # 組合好字串後回傳給 Dialogflow
         #return make_response(jsonify({"fulfillmentText": info}))
