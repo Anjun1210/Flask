@@ -48,17 +48,44 @@ def index():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    # build a request object
+    # 建立 request 物件
     req = request.get_json(force=True)
-    # fetch queryResult from json
-    action =  req["queryResult"]["action"]
-    #msg =  req["queryResult"]["queryText"]
-    #info = "我是蕭安均設計的機器人,動作：" + action + "； 查詢內容：" + msg
+    
+    # 安全地取得 action，避免 json 格式不對時當機
+    action = req.get("queryResult", {}).get("action")
+    
+    # 預設的回覆內容（如果 action 不是 rateChoice，就會回傳這個）
+    info = "我是蕭安均設計的機器人，目前還不支援這個動作喔！"
 
-    if (action == "rateChoice"):
-        rate =  req["queryResult"]["parameters"]["rate"]
-        info = "我是蕭安均設計的機器人,您選擇的電影分級是：" + rate
+    if action == "rateChoice":
+        # 取出 Dialogflow 傳過來的分級參數，統一命名為 rate_param
+        rate_param = req["queryResult"]["parameters"]["rate"]
+        
+        # 判斷如果是陣列，就取出第一個值
+        if isinstance(rate_param, list) and len(rate_param) > 0:
+            target_rate = rate_param[0]
+        else:
+            target_rate = str(rate_param)
 
+        # 查詢 Firestore
+        db = firestore.client()
+        collection_ref = db.collection("本週新片含分級")
+        docs = collection_ref.where("rate", "==", target_rate).get()
+        
+        movie_list = []
+        for doc in docs:
+            movie_data = doc.to_dict()
+            movie_list.append(movie_data["title"])
+        
+        if movie_list:
+            info = f"為您找到本週上映的【{target_rate}】電影有：\n" + "、".join(movie_list)
+        else:
+            info = f"抱歉，本週資料庫中沒有找到【{target_rate}】的電影。"
+
+        # 組合好字串後回傳給 Dialogflow
+        #return make_response(jsonify({"fulfillmentText": info}))
+
+    # 其他未知的 action 統一回傳預設 info
     return make_response(jsonify({"fulfillmentText": info}))
 
 @app.route("/rate")
