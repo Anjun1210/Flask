@@ -46,8 +46,8 @@ def index():
 
     return link
 
-@app.route("/webhook2", methods=["POST"])
-def webhook2():
+@app.route("/webhook", methods=["POST"])
+def webhook():
     # build a request object
     req = request.get_json(force=True)
     # fetch queryResult from json
