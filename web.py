@@ -62,7 +62,7 @@ def webhook():
     action = req.get("queryResult", {}).get("action")
     
     # 預設的回覆內容（如果 action 不是 rateChoice，就會回傳這個）
-    info = "我是蕭安均設計的機器人，目前還不支援這個動作喔！"
+    info = "我是安均設計的機器人，目前還不支援這個動作喔！"
 
     if action == "rateChoice":
         # 取出 Dialogflow 傳過來的分級參數，統一命名為 rate_param
@@ -82,17 +82,22 @@ def webhook():
         movie_list = []
         for doc in docs:
             movie_data = doc.to_dict()
-            movie_list.append(movie_data["title"])
+            title = movie_data.get("title", "未知片名")
+            hyperlink = movie_data.get("hyperlink", "")
+            
+            # 將片名與網址組合。加上簡單的符號讓排版更清楚
+            if hyperlink:
+                movie_list.append(f"🎬 {title}\n🔗 介紹：{hyperlink}")
+            else:
+                movie_list.append(f"🎬 {title}")
         
         if movie_list:
-            info = f"我是蕭安均設計的機器人,為您找到本週上映的【{target_rate}】電影有：\n" + "、".join(movie_list)
+            # 用兩個換行符號 (\n\n) 來隔開每部電影，避免文字擠在一起
+            info = f"我是安均設計的機器人,為您找到本週上映的【{target_rate}】電影有：\n\n" + "\n\n".join(movie_list)
         else:
-            info = f"我是蕭安均設計的機器人,抱歉，本週資料庫中沒有找到【{target_rate}】的電影。"
+            info = f"我是安均設計的機器人,抱歉，本週資料庫中沒有找到【{target_rate}】的電影。"
 
-        # 組合好字串後回傳給 Dialogflow
-        #return make_response(jsonify({"fulfillmentText": info}))
-
-    # 其他未知的 action 統一回傳預設 info
+    # 回傳給 Dialogflow
     return make_response(jsonify({"fulfillmentText": info}))
 
 @app.route("/rate")
