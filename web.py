@@ -49,9 +49,9 @@ def index():
 
 @app.route("/webdemo")
 def webdemo():
-    #R = "<a href='/'>返回首頁</a><hr>"
-    return render_template("webdemo.html")
-    #return R
+    R = "<a href='/'>返回首頁</a><hr>"
+    return R + render_template("webdemo.html")
+    
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
