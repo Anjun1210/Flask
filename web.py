@@ -28,7 +28,19 @@ app = Flask(__name__)
 
 # 在全域（函式外面）建立 Client 物件，只初始化一次即可，不用每次初始化
 
-client = genai.Client()
+gemini_key = os.getenv("GEMINI_API_KEY")
+
+try:
+    if gemini_key:
+        # 正式上線 (Runtime) 時，會順利抓到你的真金鑰
+        client = genai.Client(api_key=gemini_key)
+    else:
+        # 當 Vercel 在 Build 階段把 Sensitive 金鑰藏起來時，
+        # 給它一把假鑰匙，防止整個檔案直接崩潰當機
+        client = genai.Client(api_key="AIzaSy_dummy_key_for_vercel_build")
+except Exception as e:
+    print(f"Gemini 初始化錯誤 (Build階段可忽略): {e}")
+    client = None
 
 @app.route("/")
 def index():
