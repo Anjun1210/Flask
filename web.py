@@ -119,73 +119,71 @@ def webdemo():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    # 建立 request 物件
     req = request.get_json(force=True)
-    
-    # 安全地取得 action，避免 json 格式不對時當機
     action = req.get("queryResult", {}).get("action")
-    
-    # 預設的回覆內容（如果 action 不是 rateChoice，就會回傳這個）
+
     info = "我是安均設計的機器人，目前還不支援這個動作喔！"
 
     if action == "rateChoice":
-        # 取出 Dialogflow 傳過來的分級參數，統一命名為 rate_param
         rate_param = req["queryResult"]["parameters"]["rate"]
-        
-        # 判斷如果是陣列，就取出第一個值
+
         if isinstance(rate_param, list) and len(rate_param) > 0:
             target_rate = rate_param[0]
         else:
             target_rate = str(rate_param)
 
-        # 查詢 Firestore
-        db = firestore.client()
-        collection_ref = db.collection("本週新片含分級")
-        docs = collection_ref.where("rate", "==", target_rate).get()
-        
+        docs = db.collection("本週新片含分級")\
+                 .where("rate", "==", target_rate)\
+                 .get()
+
         movie_list = []
+
         for doc in docs:
             movie_data = doc.to_dict()
             title = movie_data.get("title", "未知片名")
             hyperlink = movie_data.get("hyperlink", "")
-            
-            # 將片名與網址組合。加上簡單的符號讓排版更清楚
+
             if hyperlink:
-                movie_list.append(f"🎬 {title}\n🔗 介紹：{hyperlink}")
+                movie_list.append(
+                    f"🎬 {title}\n🔗 介紹：{hyperlink}"
+                )
             else:
                 movie_list.append(f"🎬 {title}")
-        
+
         if movie_list:
-            # 用兩個換行符號 (\n\n) 來隔開每部電影，避免文字擠在一起
-            info = f"我是安均設計的機器人,為您找到本週上映的【{target_rate}】電影有：\n\n" + "\n\n".join(movie_list)
+            info = (
+                f"我是安均設計的機器人，為您找到本週上映的【{target_rate}】電影有：\n\n"
+                + "\n\n".join(movie_list)
+            )
         else:
-            info = f"我是安均設計的機器人,抱歉，本週資料庫中沒有找到【{target_rate}】的電影。"
+            info = f"抱歉，本週資料庫中沒有找到【{target_rate}】電影。"
 
-        elif (action == "input.unknown"):
-                    instruction_text = (
-                "你是一個熱心且知識豐富的專業智慧助理。"
-                "對於使用者的提問，請回覆重點的關鍵字，不要重述問題。"         
-            )
+    elif action == "input.unknown":
 
+        instruction_text = (
+            "你是一個熱心且知識豐富的專業智慧助理。"
+            "對於使用者的提問，請回覆重點，不要重述問題。"
+        )
 
-            ai_config = types.GenerateContentConfig(
-                max_output_tokens=500, 
-                system_instruction=instruction_text
-            )
-            response = client.models.generate_content(
-                        model='gemini-3.5-flash', 
-                        contents=req["queryResult"]["queryText"],
-                        config=ai_config,
-                    )
+        ai_config = types.GenerateContentConfig(
+            max_output_tokens=500,
+            system_instruction=instruction_text
+        )
 
-                    if response.text:
-                        info = response.text
-                    else:
-                        info = "抱歉，我現在無法生成回應，請稍後再試。"
+        response = client.models.generate_content(
+            model="gemini-3.5-flash",
+            contents=req["queryResult"]["queryText"],
+            config=ai_config
+        )
 
+        if response.text:
+            info = response.text
+        else:
+            info = "抱歉，我現在無法生成回應，請稍後再試。"
 
-    # 回傳給 Dialogflow
-    return make_response(jsonify({"fulfillmentText": info}))
+    return make_response(jsonify({
+        "fulfillmentText": info
+    }))
 
 @app.route("/rate")
 def rate():
