@@ -3,43 +3,58 @@ import urllib3
 from bs4 import BeautifulSoup
 from google import genai
 from google.genai import types
-from flask import Flask, render_template,request,make_response,jsonify
+from flask import Flask, render_template, request, make_response, jsonify
 from datetime import datetime
 
 import os
 import json
 import firebase_admin
 from firebase_admin import credentials, firestore
+from dotenv import load_dotenv
 
-# 判斷是在 Vercel 還是本地
+# ==========================================
+# 💡 安全初始化 Firebase (加入 Vercel Build 防崩潰機制)
+# ==========================================
 if os.path.exists('serviceAccountKey.json'):
-    # 本地環境：讀取檔案
+    # 本地環境
     cred = credentials.Certificate('serviceAccountKey.json')
+    load_dotenv()
+    firebase_admin.initialize_app(cred)
+    db = firestore.client()
 else:
-    # 雲端環境：從環境變數讀取 JSON 字串
+    # 雲端環境
     firebase_config = os.getenv('FIREBASE_CONFIG')
-    cred_dict = json.loads(firebase_config)
-    cred = credentials.Certificate(cred_dict)
-
-firebase_admin.initialize_app(cred)
+    try:
+        if firebase_config:
+            # 正式上線有抓到變數時，正常啟動
+            cred_dict = json.loads(firebase_config)
+            cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(cred)
+            db = firestore.client()
+        else:
+            # Build 階段抓不到變數時，安全跳過避免當機
+            print("Build 階段: FIREBASE_CONFIG 被隱藏，跳過初始化。")
+            db = None
+    except Exception as e:
+        print(f"Firebase 初始化錯誤: {e}")
+        db = None
 
 
 app = Flask(__name__)
 
-# 在全域（函式外面）建立 Client 物件，只初始化一次即可，不用每次初始化
-
+# ==========================================
+# 💡 安全初始化 Gemini Client (加入 Vercel Build 防崩潰機制)
+# ==========================================
 gemini_key = os.getenv("GEMINI_API_KEY")
 
 try:
     if gemini_key:
-        # 正式上線 (Runtime) 時，會順利抓到你的真金鑰
         client = genai.Client(api_key=gemini_key)
     else:
-        # 當 Vercel 在 Build 階段把 Sensitive 金鑰藏起來時，
-        # 給它一把假鑰匙，防止整個檔案直接崩潰當機
+        # Build 階段給假鑰匙防當機
         client = genai.Client(api_key="AIzaSy_dummy_key_for_vercel_build")
 except Exception as e:
-    print(f"Gemini 初始化錯誤 (Build階段可忽略): {e}")
+    print(f"Gemini 初始化錯誤: {e}")
     client = None
 
 @app.route("/")
